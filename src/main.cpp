@@ -7,7 +7,7 @@
 #include <llvm/IR/CallSite.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
 #include <iostream>
@@ -76,7 +76,9 @@ main(int argc, char * argv[])
 	}
 
 	strip(*module);
-	module->dump();
+
+	llvm::raw_os_ostream os(std::cout);
+	module->print(os, nullptr);
 
 	return 0;
 }
