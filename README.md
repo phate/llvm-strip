@@ -2,4 +2,4 @@
 A simple tool to strip all attributes and meta data from LLVM files.
 
 ## Dependencies:
-- LLVM 4.0
+- LLVM 7.0
