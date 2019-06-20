@@ -1,0 +1,25 @@
+define HELP_TEXT_LLVMSTRIP
+echo ""
+echo "llvm-strip Make Targets"
+echo "--------------------------------------------------------------------------------"
+echo "llvm-strip             Compiles llvm-strip"
+echo "llvm-strip-clean       Cleans all build files and executable"
+endef
+
+LLVMSTRIP_SRC = \
+	$(LLVMSTRIP_ROOT)/src/main.cpp
+
+.PHONY: llvm-strip
+llvm-strip: $(LLVMSTRIP_ROOT)/bin/llvm-strip
+
+$(LLVMSTRIP_ROOT)/bin/llvm-strip: CPPFLAGS = -I$(shell $(LLVMCONFIG) --includedir)
+$(LLVMSTRIP_ROOT)/bin/llvm-strip: CXXFLAGS = -Wall -std=c++14 -Wfatal-errors
+$(LLVMSTRIP_ROOT)/bin/llvm-strip: LDFLAGS = $(shell $(LLVMCONFIG) --ldflags --system-libs --libs irReader)
+$(LLVMSTRIP_ROOT)/bin/llvm-strip: $(patsubst %.cpp, %.o, $(LLVMSTRIP_SRC))
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+.PHNOY: llvm-strip-clean
+llvm-strip-clean:
+	@find . -name "*.o" | xargs rm -rf
+	@rm -rf $(LLVMSTRIP_ROOT)/bin

@@ -1,23 +1,32 @@
 # Copyright 2018 Nico Reißmann <nico.reissmann@gmail.com>
 # See COPYING for terms of redistribution.
+define HELP_TEXT
+clear
+echo "Makefile for the llvm-strip tool"
+echo "Version 1.0 - 2019-06-18"
+endef
 
-LLVMCONFIG = llvm-config
+.PHONY: help
+help:
+	@$(HELP_TEXT)
+	@$(HELP_TEXT_LLVMSTRIP)
 
-CPPFLAGS = -I$(shell $(LLVMCONFIG) --includedir)
-CXXFLAGS = -Wall -std=c++14 -Wfatal-errors
-LDFLAGS = $(shell $(LLVMCONFIG) --ldflags --system-libs --libs irReader)
+LLVMSTRIP_ROOT ?= .
+include $(LLVMSTRIP_ROOT)/Makefile.sub
 
-LLVMSTRIP_SRC = \
-	src/main.cpp
+# Check for llvm-config to provide better error message
+LLVMCONFIG ?= llvm-config
 
+LLVMCONFIG_IN_PATH := $(shell command -v $(LLVMCONFIG) 2> /dev/null)
+ifndef LLVMCONFIG_IN_PATH
+    $(error "$(LLVMCONFIG) not in path; needed to compile llvm-strip")
+endif
+
+.PHONY: all
 all: llvm-strip
-
-llvm-strip: $(patsubst %.cpp, %.o, $(LLVMSTRIP_SRC))
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) -o $@ $<
 
-clean:
-	find . -name "*.o" | xargs rm -rf
-	rm -rf llvm-strip
+.PHONY: clean
+clean: llvm-strip-clean
