@@ -7,15 +7,66 @@
 #include <llvm/IR/CallSite.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
 #include <iostream>
 
+class cmdline_options {
+public:
+	cmdline_options()
+	: ifile("")
+	, ofile("")
+	{}
+
+	std::string ifile;
+	std::string ofile;
+};
+
 static void
-print_help(const char * app)
+parse_cmdline(int argc, char ** argv, cmdline_options & flags)
 {
-	std::cerr << "Usage: " << app << " FILE\n";
+	using namespace llvm;
+
+	/*
+		FIXME: The command line parser setup is currently redone
+		for every invocation of parse_cmdline. We should be able
+		to do it only once and then reset the parser on every
+		invocation of parse_cmdline.
+	*/
+
+	cl::TopLevelSubCommand->reset();
+
+	cl::opt<bool> show_help(
+	  "help"
+	, cl::ValueDisallowed
+	, cl::desc("Display available options."));
+
+	cl::opt<std::string> ifile(
+	  cl::Positional
+	, cl::desc("<input>"));
+
+	cl::opt<std::string> ofilepath(
+	  "o"
+	, cl::desc("Write output to <file>.")
+	, cl::value_desc("file"));
+
+	cl::ParseCommandLineOptions(argc, argv);
+
+	if (show_help) {
+		cl::PrintHelpMessage();
+		exit(EXIT_SUCCESS);
+	}
+
+	if (ifile.empty()) {
+		std::cerr << "No input file given.\n";
+		exit(EXIT_FAILURE);
+	}
+
+	flags.ifile = ifile;
+	if (!ofilepath.empty())
+		flags.ofile = ofilepath;
 }
 
 static void
@@ -62,23 +113,27 @@ strip(llvm::Module & module)
 int
 main(int argc, char * argv[])
 {
-	if (argc < 2) {
-		print_help(argv[0]);
-		exit(1);
-	}
+	cmdline_options options;
+	parse_cmdline(argc, argv, options);
 
 	llvm::LLVMContext ctx;
 	llvm::SMDiagnostic smd;
-	auto module = llvm::parseIRFile(argv[1], smd, ctx);
+	auto module = llvm::parseIRFile(options.ifile, smd, ctx);
 	if (!module) {
 		smd.print(argv[0], llvm::errs());
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	strip(*module);
 
-	llvm::raw_os_ostream os(std::cout);
-	module->print(os, nullptr);
+	if (options.ofile.empty()) {
+		llvm::raw_os_ostream os(std::cout);
+		module->print(os, nullptr);
+	} else {
+		std::error_code ec;
+		llvm::raw_fd_ostream os(options.ofile, ec);
+		module->print(os, nullptr);
+	}
 
 	return 0;
 }
