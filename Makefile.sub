@@ -9,6 +9,15 @@ endef
 LLVMSTRIP_SRC = \
 	$(LLVMSTRIP_ROOT)/src/main.cpp
 
+###
+# Check for llvm-config
+###
+LLVMCONFIG ?= llvm-config
+LLVMCONFIG_IN_PATH := $(shell command -v $(LLVMCONFIG) 2> /dev/null)
+ifndef LLVMCONFIG_IN_PATH
+    $(error "$(LLVMCONFIG) not in path; needed to compile llvm-strip")
+endif
+
 .PHONY: llvm-strip
 llvm-strip: $(LLVMSTRIP_ROOT)/bin/llvm-strip
 
